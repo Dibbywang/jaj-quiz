@@ -1,0 +1,340 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G30 Result Decoder</title>
+    <style>
+        /* --- Color Palette & Base Variables --- */
+        :root {
+            --bg-dark: #043A27;
+            --g-yellow: #C3D92A;
+            --g-green: #53903F;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --accent: #e8f4f0;
+            --danger: #d9534f;
+            --warning: #f39c12;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: var(--text-dark);
+        }
+
+        /* --- Header Styling --- */
+        header {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-text {
+            font-size: 26px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--g-yellow);
+        }
+
+        /* --- Main Layout --- */
+        main {
+            padding: 40px 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 { color: var(--bg-dark); margin-top: 0; }
+        
+        /* --- Input Section --- */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            font-size: 24px;
+            font-family: monospace;
+            text-transform: uppercase;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--g-green);
+        }
+
+        .decode-btn {
+            background-color: var(--g-green);
+            color: white;
+            border: none;
+            padding: 0 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .decode-btn:hover {
+            background-color: var(--bg-dark);
+        }
+
+        /* --- Results Section --- */
+        #results-container {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .binary-display {
+            font-family: monospace;
+            background: var(--bg-dark);
+            color: var(--g-yellow);
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 20px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .trigger-tag {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background: #eee;
+            color: #666;
+        }
+
+        .trigger-tag.active {
+            background: var(--danger);
+            color: white;
+        }
+
+        .question-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .q-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid var(--g-green);
+            border-radius: 4px;
+        }
+        
+        .q-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--bg-dark);
+        }
+
+        .error-msg {
+            color: var(--danger);
+            font-weight: bold;
+            margin-top: 10px;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-text">G30 is beautiful.</div>
+        </div>
+        <div class="header-title">ARCHETYPE DECODER</div>
+    </header>
+
+    <main>
+        <div class="card">
+            <h2>Enter Hex Code</h2>
+            <p>Paste the 4-digit hexadecimal result code to reveal the hidden triggers and question breakdown.</p>
+            
+            <div class="input-group">
+                <input type="text" id="hex-input" maxlength="4" placeholder="A30F" onkeypress="handleEnter(event)">
+                <button class="decode-btn" onclick="decodeHex()">Decode</button>
+            </div>
+            <div id="error-message" class="error-msg">Please enter a valid hexadecimal code (0-9, A-F).</div>
+        </div>
+
+        <div id="results-container">
+            <div class="card">
+                <div class="binary-display" id="binary-output">0000 0000 0000 0000</div>
+                
+                <h3 class="section-title">Special Triggers (Bits 1-4)</h3>
+                <div id="triggers-output">
+                    <!-- Triggers injected here -->
+                </div>
+
+                <h3 class="section-title">Question Breakdown (Bits 5-16)</h3>
+                <div class="question-breakdown" id="questions-output">
+                    <!-- Questions injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                decodeHex();
+            }
+        }
+
+        function decodeHex() {
+            const hexInput = document.getElementById('hex-input').value.trim().toUpperCase();
+            const errorMsg = document.getElementById('error-message');
+            const resultsContainer = document.getElementById('results-container');
+
+            // Validate Hex (Allowing up to 4 characters, padding if less)
+            const hexRegex = /^[0-9A-F]{1,4}$/;
+            if (!hexRegex.test(hexInput)) {
+                errorMsg.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            errorMsg.style.display = 'none';
+
+            // Convert to Binary and pad to 16 bits
+            let binaryString = parseInt(hexInput, 16).toString(2).padStart(16, '0');
+            
+            // Display formatted binary (blocks of 4)
+            document.getElementById('binary-output').innerText = binaryString.match(/.{1,4}/g).join(' ');
+
+            parseData(binaryString);
+            resultsContainer.style.display = 'block';
+        }
+
+        function parseData(binary) {
+            // --- Extract Triggers (First 4 bits) ---
+            const triggers = {
+                sup_serge: binary[0] === '1',
+                sup_john: binary[1] === '1',
+                adhd: binary[2] === '1',
+                autism: binary[3] === '1'
+            };
+
+            const triggersHtml = `
+                <span class="trigger-tag ${triggers.sup_serge ? 'active' : ''}">Sup Serge (Time < 10s diff)</span>
+                <span class="trigger-tag ${triggers.sup_john ? 'active' : ''}">Sup John (Time > 2x)</span>
+                <span class="trigger-tag ${triggers.adhd ? 'active' : ''}">ADHD (Fast Clicks)</span>
+                <span class="trigger-tag ${triggers.autism ? 'active' : ''}">Autism (Q2 Pathway)</span>
+            `;
+            document.getElementById('triggers-output').innerHTML = triggersHtml;
+
+            // --- Extract Question Answers (Remaining 12 bits, 2 bits each) ---
+            const q1 = binary.substring(4, 6);
+            const q2 = binary.substring(6, 8);
+            const q3 = binary.substring(8, 10);
+            const q4 = binary.substring(10, 12);
+            const q5 = binary.substring(12, 14);
+            const q6 = binary.substring(14, 16);
+
+            // Decode dictionaries based on the logic in the main app
+            const q1Map = {
+                "00": "Cat food (Anti-John)",
+                "01": "Dog food (Anti-John)",
+                "10": "Both looks tasty (Indecisiveness)",
+                "11": "Report this question (John League)"
+            };
+
+            const q2Map = {
+                "00": "Option A (Autism Trigger)",
+                "01": "Option B (John League)",
+                "10": "Option C (Anti-John League)",
+                "11": "Option D (Chris Bourne)"
+            };
+
+            const q3Map = {
+                "00": "Identified all correct options (John & Anti-John)",
+                "10": "Partial correct options found (John & Anti-John)",
+                "11": "Fell for the trick option (Indecisiveness)"
+            };
+
+            const q4Map = {
+                "00": "Engineering and Science Building (Anti-John League)",
+                "01": "Toyoda Auditorium Area (John League)",
+                "10": "Ambiguous/Indecisive Map Click (Indecisiveness)"
+            };
+
+            const q5Map = {
+                "00": "Option A (Anti-John League)",
+                "01": "Option B (John League)",
+                "10": "Option C (Chris Bourne)",
+                "11": "Option D (Indecisiveness)"
+            };
+
+            const q6Map = {
+                "00": "Option A (John & Anti-John)",
+                "01": "Option B (No points)",
+                "10": "Option C (Anti-John & Chris Bourne)",
+                "11": "Option D (Anti-John)"
+            };
+
+            const questionsHtml = `
+                <div class="q-item"><strong>Question 1 (Bits: ${q1})</strong> ${q1Map[q1] || "Unknown"}</div>
+                <div class="q-item"><strong>Question 2 (Bits: ${q2})</strong> ${q2Map[q2] || "Unknown"}</div>
+                <div class="q-item"><strong>Question 3 (Bits: ${q3})</strong> ${q3Map[q3] || "Unknown"}</div>
+                <div class="q-item"><strong>Question 4 (Bits: ${q4})</strong> ${q4Map[q4] || "Unknown"}</div>
+                <div class="q-item"><strong>Question 5 (Bits: ${q5})</strong> ${q5Map[q5] || "Unknown"}</div>
+                <div class="q-item"><strong>Question 6 (Bits: ${q6})</strong> ${q6Map[q6] || "Unknown"}</div>
+            `;
+            
+            document.getElementById('questions-output').innerHTML = questionsHtml;
+        }
+    </script>
+</body>
+</html>
