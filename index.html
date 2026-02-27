@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G30 Questionnaire</title>
+    <style>
+        /* --- Color Palette & Base Variables --- */
+        :root {
+            --bg-dark: #043A27;
+            --g-yellow: #C3D92A;
+            --g-green: #53903F;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --accent: #e8f4f0;
+            --danger: #d9534f;
+            --danger-bg: #fdf7f7;
+            --chart-john: #3498db;
+            --chart-anti: #e67e22;
+            --chart-bourne: #cc0000; /* Communist Red */
+            --chart-indecisive: #95a5a6;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* --- Top Bar & Logo Styling --- */
+        header {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 1000;
+            height: 70px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-img {
+            height: 44px;
+            width: auto;
+            border-radius: 4px;
+        }
+
+        .logo-text {
+            font-size: 26px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+
+        .timer-container {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 12px;
+            border-radius: 5px;
+        }
+
+        /* --- Main Content Layout --- */
+        main {
+            margin-top: 90px;
+            padding: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2, h3 { color: var(--bg-dark); }
+        p { line-height: 1.6; }
+
+        /* --- Question Grid (Responsive) --- */
+        .options-grid {
+            display: grid;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        @media (min-width: 601px) {
+            .options-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+        }
+
+        .option-btn {
+            padding: 20px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            background-color: white;
+            color: var(--text-dark);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .option-btn img {
+            max-width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .option-btn span {
+            width: 100%;
+            text-align: left;
+        }
+
+        .option-btn.text-only {
+            align-items: flex-start;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--g-green);
+            background-color: #f9fbf9;
+        }
+        .option-btn.selected {
+            background-color: var(--bg-dark);
+            color: white;
+            border-color: var(--bg-dark);
+        }
+        
+        /* Multi-select Specific Highlight Classes */
+        .option-btn.correct-highlight {
+            background-color: var(--g-green) !important;
+            color: white !important;
+            border-color: var(--g-green) !important;
+        }
+        .option-btn.wrong-highlight {
+            background-color: var(--danger) !important;
+            color: white !important;
+            border-color: var(--danger) !important;
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* --- Map Interactive Elements (Q4) --- */
+        .map-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-top: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+        .map-wrapper img {
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+            display: block;
+        }
+        .map-marker {
+            display: none;
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: var(--danger);
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        /* --- UI Elements --- */
+        .report-form, .explanation-prompt {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        .report-form {
+            background-color: var(--danger-bg);
+            border-left: 5px solid var(--danger);
+        }
+        .explanation-prompt {
+            background-color: var(--accent);
+            border-left: 5px solid var(--g-yellow);
+        }
+
+        .next-btn, .start-btn, .submit-btn, .confirm-btn {
+            background-color: var(--g-green);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .submit-btn { background-color: var(--danger); }
+        .submit-btn:hover { background-color: #c9302c; }
+        .next-btn:hover, .start-btn:hover, .confirm-btn:hover { background-color: var(--bg-dark); }
+        .confirm-btn { background-color: #2980b9; display: none; }
+        .confirm-btn:hover { background-color: #1a5276; }
+
+        /* --- Results Chart Styles --- */
+        .results-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fdfdfd;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .chart-row {
+            margin-bottom: 15px;
+        }
+        .chart-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .chart-bar-bg {
+            width: 100%;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .chart-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 1s ease-out;
+        }
+        .special-ending-card {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <img src="favicon.png" alt="G30 Logo" class="logo-img" onerror="this.style.display='none'">
+            <div class="logo-text">is beautiful.</div>
+        </div>
+        <div class="timer-container" id="timer-display">00:00 / 02:30</div>
+    </header>
+
+    <main>
+        <!-- EXPLANATIONS PAGE -->
+        <section id="intro-page" class="page active">
+            <h1>Hello challenger.</h1>
+            <p>This personality quiz will use its questions to determine whether your personality fits that of the glorious John League or the valiant Anti-John League. Please read or do not read the following instructions:</p>
+            <ul>
+                <li>There are <strong>6 questions</strong> in total.</li>
+                <li>Answer honestly and to the best of your ability. Every choice influences your final result.</li>
+                <li>Once you select an answer, you cannot change it. Therefore, please be careful when clicking.</li>
+                <li>This questionnaire is designed to be completed in 2.5 minutes, but you may have more time if you wish, as long as you finish before the last train.</li>
+                <li>There are endings that can be triggered by certain actions. Consider looking for them. </li>
+            </ul>
+            <p>When you are ready, click below to start the timer and begin. The result will include a distribution of your tendencies as well as a 4 digit code that records all your results. Consider sharing the code to others!</p>
+            <button class="start-btn" onclick="startQuestionnaire()">Begin Questionnaire</button>
+        </section>
+
+        <!-- QUESTION 1 PAGE -->
+        <section id="q1-page" class="page">
+            <h2>Question 1</h2>
+            <p>Are you a cat food or a dog food person?</p>
+            
+            <div class="options-grid shuffle-grid" id="q1-options">
+                <button class="option-btn" data-val="00" onclick="selectOption('q1', this)">
+                    <img src="data:image/jpeg;base64,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" alt="Cat Food Placeholder">
+                    <span>Cat food</span>
+                </button>
+                <button class="option-btn" data-val="01" onclick="selectOption('q1', this)">
+                    <img src="data:image/jpeg;base64,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" alt="Dog Food Placeholder">
+                    <span>Dog food</span>
+                </button>
+                <button class="option-btn text-only" data-val="10" onclick="selectOption('q1', this)">
+                    <span>Both looks tasty</span>
+                </button>
+                <button class="option-btn text-only" data-val="11" onclick="selectOption('q1', this)">
+                    <span>Report this question</span>
+                </button>
+            </div>
+
+            <div class="report-form" id="q1-report-form">
+                <h3>Report Question</h3>
+                <p>Please select the reasons for reporting:</p>
+                <label><input type="checkbox"> Offensive or inappropriate content</label>
+                <label><input type="checkbox"> Irrelevant to the evaluation</label>
+                <label><input type="checkbox"> Confusing or poorly worded</label>
+                <label><input type="checkbox"> Other</label>
+                <br>
+                <button class="submit-btn" onclick="submitReport('q1')">Submit Report</button>
+            </div>
+
+            <div class="explanation-prompt" id="q1-explanation">
+                <h3>Insights</h3>
+                <p id="q1-explanation-text"></p>
+                <button class="next-btn" onclick="nextPage('q2-page')">Next Question</button>
+            </div>
+        </section>
+
+        <!-- QUESTION 2 PAGE -->
+        <section id="q2-page" class="page">
+            <h2>Question 2</h2>
+            <p>Two years ago, you forgot to pay 10000円 worth of taxes. Last year, you forgot to pay 20000円 worth of taxes. This year, you forgot 40000円 worth of taxes. Whose fault is this?</p>
+            
+            <div class="options-grid shuffle-grid" id="q2-options">
+                <button class="option-btn text-only" data-val="00" onclick="selectOption('q2', this)">
+                    <span>80000円 worth of taxes next year.</span>
+                </button>
+                <button class="option-btn text-only" data-val="01" onclick="selectOption('q2', this)">
+                    <span>Why didn't anyone tell me? How could due by March 27 means due by noon, not midnight or something. Utterly unreasonable.</span>
+                </button>
+                <button class="option-btn text-only" data-val="10" onclick="selectOption('q2', this)">
+                    <span>Okay I would never do something this stupid. If I forgot once I will not make the same mistake again. There is probably something wrong with the system.</span>
+                </button>
+                <button class="option-btn text-only" data-val="11" onclick="selectOption('q2', this)">
+                    <span>I think taxes are not needed anymore if wealth is evenly distributed.</span>
+                </button>
+            </div>
+
+            <div class="explanation-prompt" id="q2-explanation">
+                <h3>Insights</h3>
+                <p id="q2-explanation-text"></p>
+                <button class="next-btn" onclick="nextPage('q3-page')">Next Question</button>
+            </div>
+        </section>
+
+        <!-- QUESTION 3 PAGE (Multi-Select) -->
+        <section id="q3-page" class="page">
+            <h2>Question 3</h2>
+            <p>Consider the following situation: You are a professor in a university. Recently you had trouble with the administration in that you missed some deadlines or did not comply with some demands, and in turn their response was far from polite. What will you do?</p>
+            
+            <div class="options-grid shuffle-grid" id="q3-options">
+                <button class="option-btn text-only q3-multi" data-val="00" onclick="toggleOption(this)">
+                    <span>Write long emails of complaint to the authorities, perhaps even beyond the university administration.</span>
+                </button>
+                <button class="option-btn text-only q3-multi" data-val="01" onclick="toggleOption(this)">
+                    <span>Throw a tantrum and protest in hilarious ways that normal people may not comprehend so easily.</span>
+                </button>
+                <button class="option-btn text-only q3-multi" data-val="10" onclick="toggleOption(this)">
+                    <span>Adopt strange counter measures and found a league where like minded individuals collaborate to defeat this horrid enemy.</span>
+                </button>
+                <button class="option-btn text-only q3-multi" data-val="11" onclick="toggleOption(this)">
+                    <span>Impress the world with your compassion by accepting this unfair treatment and move on.</span>
+                </button>
+            </div>
+
+            <button class="confirm-btn" id="q3-confirm" onclick="confirmQ3()">Confirm Selection</button>
+
+            <div class="explanation-prompt" id="q3-explanation">
+                <h3>Insights</h3>
+                <p id="q3-explanation-text"></p>
+                <button class="next-btn" onclick="nextPage('q4-page')">Next Question</button>
+            </div>
+        </section>
+
+        <!-- QUESTION 4 PAGE (Map) -->
+        <section id="q4-page" class="page">
+            <h2>Question 4</h2>
+            <p>Say you want to pirate a textbook or other copyrighted material. Where on campus would you pirate it to incriminate the residents of the given building?</p>
+            
+            <div class="map-wrapper" id="q4-map-container">
+                <!-- Fallback to a plain placeholder if the real image isn't loaded by browser -->
+                <img src="cpmap.png" alt="Campus Map Placeholder" onclick="placeMarker(event)" id="q4-image">
+                <div class="map-marker" id="q4-marker"></div>
+            </div>
+
+            <button class="confirm-btn" id="q4-confirm" onclick="confirmQ4()">Confirm Location</button>
+
+            <div class="explanation-prompt" id="q4-explanation">
+                <h3>Insights</h3>
+                <p id="q4-explanation-text"></p>
+                <button class="next-btn" onclick="nextPage('q5-page')">Next Question</button>
+            </div>
+        </section>
+
+        <!-- QUESTION 5 PAGE -->
+        <section id="q5-page" class="page">
+            <h2>Question 5</h2>
+            <p>You just went hiking for twelve days without food. You finally got off the mountain and you decided to treat yourself to some amazing school lunch to remind yourself of the days when you were still alive. Which of the following is your choice?</p>
+            
+            <div class="options-grid shuffle-grid" id="q5-options">
+                <button class="option-btn text-only" data-val="00" onclick="selectOption('q5', this)">
+                    <span>I will dine in the Forest dining in my afterlife.</span>
+                </button>
+                <button class="option-btn text-only" data-val="01" onclick="selectOption('q5', this)">
+                    <span>The Mega Kebab is where I will eat until I die.</span>
+                </button>
+                <button class="option-btn text-only" data-val="10" onclick="selectOption('q5', this)">
+                    <span>Near death experience is not going to make capitalist scams better.</span>
+                </button>
+                <button class="option-btn text-only" data-val="11" onclick="selectOption('q5', this)">
+                    <span>I home cook.</span>
+                </button>
+            </div>
+
+            <div class="explanation-prompt" id="q5-explanation">
+                <h3>Insights</h3>
+                <p id="q5-explanation-text"></p>
+                <button class="next-btn" onclick="nextPage('q6-page')">Next Question</button>
+            </div>
+        </section>
+
+        <!-- QUESTION 6 PAGE -->
+        <section id="q6-page" class="page">
+            <h2>Question 6</h2>
+            <p>Out of all the options given below, which one woulld be most annoying if it were to happen to you?</p>
+            
+            <div class="options-grid shuffle-grid" id="q6-options">
+                <button class="option-btn text-only" data-val="00" onclick="selectOption('q6', this)">
+                    <span>Many selected informations about you, your family and your work becomes available to your students or colleagues.</span>
+                </button>
+                <button class="option-btn text-only" data-val="01" onclick="selectOption('q6', this)">
+                    <span>You suddenly wake up in a zoo in Nairobi or Lagos without your phone or passport.</span>
+                </button>
+                <button class="option-btn text-only" data-val="10" onclick="selectOption('q6', this)">
+                    <span>You fell down some stairs, and then you got beat up by some 新栄 gangsters. Finally you got stopped on an escalator for walking.</span>
+                </button>
+                <button class="option-btn text-only" data-val="11" onclick="selectOption('q6', this)">
+                    <span>Despite being a citizen of Switzerland, you keep being called French by annoying people who secretly mock your accent.</span>
+                </button>
+            </div>
+
+            <div class="explanation-prompt" id="q6-explanation">
+                <h3>Insights</h3>
+                <p id="q6-explanation-text"></p>
+                <button class="next-btn" onclick="nextPage('results-page')">See Results</button>
+            </div>
+        </section>
+
+        <!-- RESULTS PAGE -->
+        <section id="results-page" class="page">
+            <h2>Thank you for completing the questionnaire!</h2>
+            <p>Here are the results.</p>
+            <h1 style="text-align: center; font-size: 48px; letter-spacing: 5px; color: var(--bg-dark);" id="hex-result">A3</h1>
+            
+            <div id="special-endings-container">
+                <!-- Special endings injected here -->
+            </div>
+
+            <div class="results-section">
+                <h3>League Classification</h3>
+                
+                <div class="chart-row">
+                    <div class="chart-label"><span>John League</span> <span id="pct-john">0%</span></div>
+                    <div class="chart-bar-bg"><div class="chart-fill" id="bar-john" style="background-color: var(--chart-john);"></div></div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="chart-label"><span>Anti-John League</span> <span id="pct-anti">0%</span></div>
+                    <div class="chart-bar-bg"><div class="chart-fill" id="bar-anti" style="background-color: var(--chart-anti);"></div></div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="chart-label"><span>Chris Bourne</span> <span id="pct-bourne">0%</span></div>
+                    <div class="chart-bar-bg"><div class="chart-fill" id="bar-bourne" style="background-color: var(--chart-bourne);"></div></div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="chart-label"><span>Indecisiveness</span> <span id="pct-indecisive">0%</span></div>
+                    <div class="chart-bar-bg"><div class="chart-fill" id="bar-indecisive" style="background-color: var(--chart-indecisive);"></div></div>
+                </div>
+
+                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <h3 id="final-verdict-title">Verdict</h3>
+                    <p id="final-verdict-text"></p>
+                </div>
+            </div>
+
+            <p style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;" id="debug-text"></p>
+        </section>
+    </main>
+
+    <script>
+        // --- State Management ---
+        const TARGET_TIME = 150; 
+        let timeElapsed = 0;
+        let timerInterval;
+        let isRunning = false;
+        
+        // Trackers
+        let clickTimestamps = [];
+        let triggers = { sup_serge: 0, sup_john: 0, adhd: 0, autism: 0 };
+        let answers = []; 
+        let scores = { anti_john_league: 0, john_league: 0, indecisiveness: 0, c_bourne: 0 };
+
+        // Q4 Map tracking
+        let q4MarkerPlaced = false;
+        let q4X = 0; // percentage
+        let q4Y = 0; // percentage
+
+        // --- Explanations ---
+        const q1Explanations = {
+            "00": "Good choice! If you have time we can get together and have a party with these delicious cat food together! Paying attention is exactly what we need in the Anti-John League! We give you 1 point for this choice.",
+            "01": "Good choice! If you have time we can get together and have a party with these delicious dog food together! Paying attention is exactly what we need in the Anti-John League! We give you 1 point for this choice.",
+            "10": "You are indecisive. I am thoroughly disappointed. I wish there was more decisiveness between us.",
+            "11": "Thank you for reporting this question. We look forward to seeing you again."
+        };
+        const q2Explanations = {
+            "00": "Great choice! It seems that you are good at noticing patterns. I wonder what that means...",
+            "01": "Great choice! Always blame the others because it can never be your fault. This is exactly the kind of thinking we need in the John League!",
+            "10": "Great choice! You are surely smart enough to not forget it. This is exactly the kind of thinking we need in the Anti-John League!",
+            "11": "That is one of the ideologies to stand by. I am sure someone else would be interested in you."
+        };
+        const q5Explanations = {
+            "00": "Surely our friends at the Anti-John League would agree with you. One may say that we only meet and conduct our affairs in that amazing dining place. ",
+            "01": "Oh that sweet sweet delicious kebab! Every seventh of the month is the day of discounts.",
+            "10": "ok.",
+            "11": "You shall not use the excuse of home cooking to evade the solemn question of which cafeteria to go to. This constitutes indecisiveness."
+        };
+        const q6Explanations = {
+            "00": "I am sure both the John and Anti-John Leagues would agree with you. Imagine someone found photos and names of your entire family ! Then imagine someone kept sharing you confidential past papers with others.",
+            "01": "That is surely annoying, but it probably is not what is in the minds of the John and Anti-John Leagues.",
+            "10": "Great choice. This is clearly the most annoying thing to happen to you. Keep up with the good work.",
+            "11": "Great choice. This is clearly the most annoying thing to happen to you. Keep up with the good work."
+        };  
+
+        // --- Core Functions ---
+        function formatTime(seconds) {
+            let m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            let s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function shuffleOptions() {
+            const grids = document.querySelectorAll('.shuffle-grid');
+            const labels = ["A. ", "B. ", "C. ", "D. "];
+            
+            grids.forEach(grid => {
+                const buttons = Array.from(grid.querySelectorAll('.option-btn'));
+                // Shuffle array
+                for (let i = buttons.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [buttons[i], buttons[j]] = [buttons[j], buttons[i]];
+                }
+                
+                // Append back to DOM and inject dynamic visual label
+                buttons.forEach((btn, index) => {
+                    grid.appendChild(btn);
+                    const span = btn.querySelector('span');
+                    if(span) {
+                        span.innerText = labels[index] + span.innerText;
+                    }
+                });
+            });
+        }
+
+        function startQuestionnaire() {
+            shuffleOptions();
+            document.getElementById('intro-page').classList.remove('active');
+            document.getElementById('q1-page').classList.add('active');
+            
+            isRunning = true;
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                document.getElementById('timer-display').innerText = `${formatTime(timeElapsed)} / 02:30`;
+            }, 1000);
+        }
+
+        document.addEventListener('click', () => {
+            if (!isRunning) return; 
+            const now = Date.now();
+            clickTimestamps.push(now);
+            clickTimestamps = clickTimestamps.filter(time => now - time <= 3000);
+            if (clickTimestamps.length >= 5) {
+                triggers.adhd = 1;
+            }
+        });
+
+        // --- Single Choice Questions (Q1, Q2, Q5, Q6) ---
+        function selectOption(questionId, buttonElement) {
+            const optionsContainer = document.getElementById(`${questionId}-options`);
+            const buttons = optionsContainer.querySelectorAll('.option-btn');
+            const explanation = document.getElementById(`${questionId}-explanation`);
+            const explanationText = document.getElementById(`${questionId}-explanation-text`);
+            const val = buttonElement.getAttribute('data-val');
+
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (btn === buttonElement) {
+                    btn.classList.add('selected');
+                    answers.push(val); 
+                }
+            });
+
+            if (questionId === 'q1') {
+                if (val === "00" || val === "01") scores.anti_john_league++;
+                else if (val === "10") scores.indecisiveness++;
+                else if (val === "11") {
+                    scores.john_league++;
+                    const reportForm = document.getElementById('q1-report-form');
+                    reportForm.style.display = 'block';
+                    setTimeout(() => reportForm.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                    return; 
+                }
+                explanationText.innerText = q1Explanations[val];
+            } 
+            else if (questionId === 'q2') {
+                if (val === "00") triggers.autism = 1;
+                else if (val === "01") scores.john_league++;
+                else if (val === "10") scores.anti_john_league++;
+                else if (val === "11") scores.c_bourne++;
+                explanationText.innerText = q2Explanations[val];
+            }
+            else if (questionId === 'q5') {
+                if (val === "00") scores.anti_john_league++;
+                else if (val === "01") scores.john_league++;
+                else if (val === "10") scores.c_bourne++;
+                else if (val === "11") scores.indecisiveness++;
+                explanationText.innerText = q5Explanations[val];
+            }
+            else if (questionId === 'q6') {
+                if (val === "00") { scores.john_league++; scores.anti_john_league++; }
+                else if (val === "10") { scores.anti_john_league++; scores.c_bourne++; }
+                else if (val === "11") scores.anti_john_league++;
+                explanationText.innerText = q6Explanations[val];
+            }
+
+            explanation.style.display = 'block';
+            setTimeout(() => explanation.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }
+
+        // Q1 Specific Report Submit
+        function submitReport(questionId) {
+            const reportForm = document.getElementById(`${questionId}-report-form`);
+            const explanation = document.getElementById(`${questionId}-explanation`);
+            const explanationText = document.getElementById(`${questionId}-explanation-text`);
+            reportForm.style.display = 'none';
+            explanationText.innerText = q1Explanations["11"];
+            explanation.style.display = 'block';
+            setTimeout(() => explanation.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }
+
+        // --- Multi Choice Question (Q3) ---
+        function toggleOption(buttonElement) {
+            buttonElement.classList.toggle('selected');
+            const container = document.getElementById('q3-options');
+            const anySelected = container.querySelectorAll('.selected').length > 0;
+            document.getElementById('q3-confirm').style.display = anySelected ? 'block' : 'none';
+        }
+
+        function confirmQ3() {
+            const container = document.getElementById('q3-options');
+            const buttons = container.querySelectorAll('.option-btn');
+            
+            let selectedVals = [];
+            buttons.forEach(btn => {
+                if (btn.classList.contains('selected')) selectedVals.push(btn.getAttribute('data-val'));
+                btn.disabled = true; // lock in
+            });
+            document.getElementById('q3-confirm').style.display = 'none';
+
+            let explanationMsg = "";
+            let binaryOutput = "00"; 
+            
+            let correctCount = 0;
+            if (selectedVals.includes("00")) correctCount++;
+            if (selectedVals.includes("01")) correctCount++;
+            if (selectedVals.includes("10")) correctCount++;
+
+            if (selectedVals.includes("11")) {
+                // Picked the trick option 4
+                scores.indecisiveness++;
+                binaryOutput = "11";
+                explanationMsg = "Q3: Are you sure? Even the best of us would not be able to take this. Maybe you have potential... but just not in John or Anti-John Leagues.";
+                
+                // Color formatting
+                buttons.forEach(btn => {
+                    let v = btn.getAttribute('data-val');
+                    if (v === "11") btn.classList.add('wrong-highlight');
+                    else btn.classList.add('correct-highlight');
+                });
+            } else if (correctCount > 0) {
+                // They selected at least one correct option, award points for each found
+                scores.john_league += correctCount;
+                scores.anti_john_league += correctCount;
+                
+                if (correctCount === 3) {
+                    binaryOutput = "00";
+                    explanationMsg = "Q3: Both the John League and the Anti-John League would want someone who thinks like this. You realized that there are more viable options than just one! Please take this as a gift:";
+                } else {
+                    binaryOutput = "10";
+                    explanationMsg = "Q3: Both the John League and the Anti-John League would want someone who thinks like this. There can be more viable options. ";
+                }
+                
+                buttons.forEach(btn => {
+                    let v = btn.getAttribute('data-val');
+                    if (v !== "11") btn.classList.add('correct-highlight');
+                });
+            } else {
+                // Failsafe (shouldn't really trigger since the confirm button only shows if something is selected)
+                binaryOutput = "10";
+            }
+
+            answers.push(binaryOutput);
+
+            const explanationText = document.getElementById(`q3-explanation-text`);
+            explanationText.innerText = explanationMsg;
+            const explanation = document.getElementById(`q3-explanation`);
+            explanation.style.display = 'block';
+            setTimeout(() => explanation.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }
+
+        // --- Map Question (Q4) ---
+        function placeMarker(event) {
+            const img = document.getElementById('q4-image');
+            const rect = img.getBoundingClientRect();
+            q4X = (event.clientX - rect.left) / rect.width;
+            q4Y = (event.clientY - rect.top) / rect.height;
+
+            const marker = document.getElementById('q4-marker');
+            marker.style.display = 'block';
+            marker.style.left = `${q4X * 100}%`;
+            marker.style.top = `${q4Y * 100}%`;
+
+            q4MarkerPlaced = true;
+            document.getElementById('q4-confirm').style.display = 'block';
+        }
+
+        function confirmQ4() {
+            document.getElementById('q4-image').style.pointerEvents = 'none'; // Lock map
+            document.getElementById('q4-confirm').style.display = 'none';
+
+            // Anti-John target: Engineering and Science Building (approx X: 0.43, Y: 0.30)
+            // John target: Toyoda Auditorium area (approx X: 0.50, Y: 0.45)
+            const antiJohnDist = Math.pow(q4X - 0.43, 2) + Math.pow(q4Y - 0.30, 2);
+            const johnDist = Math.pow(q4X - 0.50, 2) + Math.pow(q4Y - 0.45, 2);
+
+            let explanationMsg = "";
+            let binaryOutput = "10"; // Default Indecisive
+
+            // Using 0.02 as the tolerance threshold (roughly a 14% radius on the map)
+            if (antiJohnDist < johnDist && antiJohnDist < 0.02) { 
+                scores.anti_john_league++;
+                binaryOutput = "00";
+                explanationMsg = "Q4: Great choice to pirate it near the ES building! I am sure that this will deal a serious blow to the John League.";
+            } else if (johnDist < antiJohnDist && johnDist < 0.02) {
+                scores.john_league++;
+                binaryOutput = "01";
+                explanationMsg = "Q4: Excellent decision! Pirating near the Science A building will sabotage the Anti-John League with this serious scandal. Keep up with the great work.";
+            } else {
+                scores.indecisiveness++;
+                binaryOutput = "10";
+                explanationMsg = "Q4: Pirating here would surely sabotage the university, but it will not do much to the residents of the buildings that we are concerned with.";
+            }
+
+            answers.push(binaryOutput);
+            
+            const explanationText = document.getElementById(`q4-explanation-text`);
+            explanationText.innerText = explanationMsg;
+            const explanation = document.getElementById(`q4-explanation`);
+            explanation.style.display = 'block';
+            setTimeout(() => explanation.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }
+
+        // --- Navigation & Compilation ---
+        function nextPage(nextPageId) {
+            document.querySelector('.page.active').classList.remove('active');
+            const next = document.getElementById(nextPageId);
+            next.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (nextPageId === 'results-page') {
+                compileResults();
+            }
+        }
+
+        function compileResults() {
+            clearInterval(timerInterval);
+            isRunning = false;
+
+            // Apply Special Endings Triggers & Point Bonuses
+            if (Math.abs(timeElapsed - TARGET_TIME) <= 10) {
+                triggers.sup_serge = 1;
+                scores.anti_john_league += 500;
+            } else if (timeElapsed > (TARGET_TIME * 2)) {
+                triggers.sup_john = 1;
+                scores.john_league += 500;
+            }
+
+            // Compile Binary
+            let binaryString = `${triggers.sup_serge}${triggers.sup_john}${triggers.adhd}${triggers.autism}`;
+            answers.forEach(ans => binaryString += ans);
+
+            let hexResult = parseInt(binaryString, 2).toString(16).toUpperCase().padStart(4, '0');
+            document.getElementById('hex-result').innerText = hexResult;
+            document.getElementById('debug-text').innerText = `Debug Binary: ${binaryString}`;
+
+            // Inject Special Endings Info
+            const endingsContainer = document.getElementById('special-endings-container');
+            if (triggers.sup_serge) endingsContainer.innerHTML += `<div class="special-ending-card">Being punctual (e.g. finishing within 10 seconds of the given time) is the top quality of the Anti-John League! Your excellent work has yielded you a place amongst the highest ranking members of this league. We look forward to your powerful leadership!</div>`;
+            if (triggers.sup_john) endingsContainer.innerHTML += `<div class="special-ending-card">Taking all the time you want, even if it is much longer than the recommended time is the prime property of the John League. We are almost certain that you belong there.</div>`;
+            if (triggers.adhd) endingsContainer.innerHTML += `<div class="special-ending-card">You may not have realized this, but you have clicked a lot in this quiz. This means that you are one that is quite active and unable to take not doing something for a period of time. Therefore, you belong in the class of people that are quite active and unable to sit still.</div>`;
+            if (triggers.autism) endingsContainer.innerHTML += `<div class="special-ending-card">You have noticed critical patterns in the quiz that others may have missed. This is evidence that you are one that notices patterns that other people may have missed.</div>`;
+
+            // Calculate Chart Data
+            const totalScores = scores.john_league + scores.anti_john_league + scores.c_bourne + scores.indecisiveness;
+            
+            // Avoid divide by zero
+            const getPct = (val) => totalScores > 0 ? Math.round((val / totalScores) * 100) : 0;
+            
+            const pJohn = getPct(scores.john_league);
+            const pAnti = getPct(scores.anti_john_league);
+            const pBourne = getPct(scores.c_bourne);
+            const pIndecisive = getPct(scores.indecisiveness);
+
+            // Animate Chart Bars
+            setTimeout(() => {
+                document.getElementById('bar-john').style.width = pJohn + '%';
+                document.getElementById('pct-john').innerText = pJohn + '%';
+
+                document.getElementById('bar-anti').style.width = pAnti + '%';
+                document.getElementById('pct-anti').innerText = pAnti + '%';
+
+                document.getElementById('bar-bourne').style.width = pBourne + '%';
+                document.getElementById('pct-bourne').innerText = pBourne + '%';
+
+                document.getElementById('bar-indecisive').style.width = pIndecisive + '%';
+                document.getElementById('pct-indecisive').innerText = pIndecisive + '%';
+            }, 300);
+
+            // Find Maximum & Generate Final Message
+            let maxScore = Math.max(scores.john_league, scores.anti_john_league, scores.c_bourne, scores.indecisiveness);
+            let winners = [];
+            if (scores.john_league === maxScore) winners.push("John League");
+            if (scores.anti_john_league === maxScore) winners.push("Anti-John League");
+            if (scores.c_bourne === maxScore) winners.push("Chris Bourne");
+            if (scores.indecisiveness === maxScore) winners.push("Indecisiveness");
+
+            const verdictTitle = document.getElementById('final-verdict-title');
+            const verdictText = document.getElementById('final-verdict-text');
+
+            if (winners.length > 1) {
+                verdictTitle.innerText = "It's a Tie!";
+                verdictText.innerText = `You have somehow managed to engineer a tie between ${winners.join(' and ')}. I would be lying if I said that I am not impressed by your ability. Please try other combinations to see if you end up with a different result.`;
+            } else {
+                verdictTitle.innerText = `Verdict: ${winners[0]}`;
+                if (winners[0] === "John League") verdictText.innerText = "You clearly belong in the John League. Your decisive and bold choices have earned you a spot among the most dedicated members of the John League. Embrace your inner John and continue to make strong, unwavering decisions!";
+                else if (winners[0] === "Anti-John League") verdictText.innerText = "It is obvious that the Anti-John League is your true home. Your thoughtful and discerning choices have shown that you value depth and nuance over blind allegiance. Wear your Anti-John badge with pride!";
+                else if (winners[0] === "Chris Bourne") verdictText.innerText = "You are a true Chris Bourne! Your unique perspective and balanced choices have set you apart from the traditional leagues. You have a foot in both worlds, and your ability to navigate complexity is admirable. Keep being the Chris Bourne that you are!";
+                else if (winners[0] === "Indecisiveness") verdictText.innerText = "It is obvious that you belong in the league of indecisive students who may be free from the chaos of the John vs Anti-John conflict. Please be proud that you somehow found the only normal options in this test.";
+            }
+        }
+    </script>
+</body>
+</html>
